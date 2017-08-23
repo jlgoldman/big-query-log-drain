@@ -113,8 +113,8 @@ If you're modifying the source code here and want to run a log drain locally,
 created a `.env` file in your project directory with these variables
 one per line in the form `VARIABLE=value`.
 
-Variable | Required? | Description
-----------------------------------
+| Variable | Required? | Description |
+|----------|-----------|-------------|
 | LOG_DRAIN_USERNAME | Required | An arbitrary username used to secure access to the /log endpoint from unauthorized sources. Use this same value when registering the drain using `heroku drains:add`. |
 | LOG_DRAIN_PASSWORD | Required | An arbitrary password used to secure access to the /log endpoint from unauthorized sources. Use this same value when registering the drain using `heroku drains:add`. |
 | LOG_RECORD_PREFIX  | Optional | An arbitrary prefix used to different log lines that contain json records from all other log records, which are plain text. If unspecified, defaults to `json:`. |
