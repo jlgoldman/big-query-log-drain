@@ -3,12 +3,17 @@ import json
 
 from flask import Flask
 from flask import request
-import requests
+from google.auth.transport.urllib3 import AuthorizedHttp
+from google.oauth2 import service_account
 
 from diagnostics import Diagnostics
 import settings
 
 app = Flask(__name__)
+
+credentials = service_account.Credentials.from_service_account_info(
+    json.loads(settings.GOOGLE_SERVICE_ACCOUNT_CREDENTIALS_JSON),
+    scopes=['https://www.googleapis.com/auth/bigquery.insertdata'])
 
 diagnostics = Diagnostics(launched_at=datetime.datetime.utcnow())
 
@@ -74,18 +79,17 @@ def _post_to_bigquery(log_records, logplex_frame_id):
     }
     url = 'https://www.googleapis.com/bigquery/v2/projects/%s/datasets/%s/tables/%s/insertAll' % (
         settings.BIG_QUERY_PROJECT_ID, settings.BIG_QUERY_DATASET_ID, settings.BIG_QUERY_TABLE_ID)
-    response = requests.post(url,
-        data=json.dumps(insert_req),
-        headers={
-            'Content-Type': 'application/json',
-            'Authorization': 'Bearer %s' % settings.GOOGLE_ACCESS_TOKEN,
-            })
-    diagnostics.big_query_response_codes[response.status_code] += 1
-    if response.status_code == 200 and not response.json().get('error'):
+    authed_http = AuthorizedHttp(credentials)
+    response = authed_http.request('POST', url, body=json.dumps(insert_req), headers={'Content-Type': 'application/json'})
+    diagnostics.big_query_response_codes[response.status] += 1
+    if response.status == 200 and not _json_from_response(response).get('error'):
         diagnostics.big_query_rows_inserted += len(log_records)
     else:
         diagnostics.big_query_rows_failed += len(log_records)
-        diagnostics.sample_big_query_insert_errors.append(response.text)
+        diagnostics.sample_big_query_insert_errors.append(response.data)
+
+def _json_from_response(urllib3_response):
+    return json.loads(urllib3_response.data.decode('utf-8'))
 
 if __name__ == '__main__':
     app.debug = settings.DEBUG

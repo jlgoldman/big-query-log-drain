@@ -38,19 +38,64 @@ which will parse them and make API requests to BigQuery to insert them.
 
 ## Setup
 
-### Create a BigQuery Table
+### Create a Google Cloud Project and BigQuery Table
 
 Create a Google Cloud project if you don't already have one.
-Go to [https://bigquery.cloud.google.com](https://bigquery.cloud.google.com) and create a BigQuery dataset and
-a table within that dataset.
 
+#### Create a Service Account
+
+This is the role that will be used to insert data into BigQuery.
+Visit the "Service accounts" page in the "IAM & admin" section of your
+Google Cloud project. Use an arbitrary service account name, and select
+the BigQuery -> BigQuery Admin role (it's possible that BigQuery Data Owner
+is sufficient as well). Choose "Furnish a new private key" and make sure
+"JSON" is selected. Create the account and the key file will be downloaded.
+
+Next, turn the key file into a config variable that can be passed to your
+application. The key file is a multi-line JSON file, but config variables
+for Heroku and `.env` are single-line environment variables. Run a command
+like `python -c "import json; print json.dumps(json.load(open('/path/to/key-file.json')))"`
+to print a single-line version of your keyfile.
+
+If running locally, put a line in your `.env` file that looks like:
+
+```bash
+GOOGLE_SERVICE_ACCOUNT_CREDENTIALS_JSON='<key-file json>'
+# for example
+GOOGLE_SERVICE_ACCOUNT_CREDENTIALS_JSON='{"private_key": "-----BEGIN PRIVATE KEY..."}'
+```
+
+This will be a big ugly string, a consequence of the fact that Google wants
+you to use JSON config files for credentials and Heroku wants you to use
+simple environment variables. Note in particular that the value should be
+quoted with single quotes; it needs to be quoted because it contains
+whitespace, and it must use single quotes because the JSON itself
+contains double quotes.
+
+#### Create a BigQuery Dataset
+
+Make sure you have enabled billing for your project first at
+[https://console.cloud.google.com/billing](https://console.cloud.google.com/billing),
+as BigQuery requires billing to use even if you usage is within the free tier.
+Annoyingly, BigQuery will give you errors when creating datasets if you have
+not enabled billing, and after errors it won't reflect the fact that you have
+enabled billing for several minutes. So just do it first.
+
+Got to [https://bigquery.cloud.google.com](https://bigquery.cloud.google.com)
+or navigate to the "BigQuery" section under "Big Data" in the hamburger menu
+in your Google Cloud console project page. Click the little triangle button
+next to your project name in the left nav, and choose "Create new dataset".
+Give it an id (a name, really) and specify a location if you care. After
+creation, hover over the dataset name in the left nav and click the plus
+button to create a new table.
+
+Set up your schema however you'd like, either from an empty table
+(probably the simplest) or by importing source data.
 It is highly recommended to leave all columns as `nullable`, otherwise
 BigQuery will throw errors when those fields are absent on inserts.
 In particular, if you add a new column to the schema later on, you must
 add that column as `nullable` otherwise BigQuery will give errors
 immediately until your app starts including that field in JSON records.
-
-Get an access token with permissions to insert into BigQuery: TBD.
 
 ### Launch the Log Drain Service
 
@@ -118,12 +163,12 @@ one per line in the form `VARIABLE=value`.
 | LOG_DRAIN_USERNAME | Required | An arbitrary username used to secure access to the /log endpoint from unauthorized sources. Use this same value when registering the drain using `heroku drains:add`. |
 | LOG_DRAIN_PASSWORD | Required | An arbitrary password used to secure access to the /log endpoint from unauthorized sources. Use this same value when registering the drain using `heroku drains:add`. |
 | LOG_RECORD_PREFIX  | Optional | An arbitrary prefix used to different log lines that contain json records from all other log records, which are plain text. If unspecified, defaults to `json:`. |
-| GOOGLE_ACCESS_TOKEN | Required | An access token used for making insert requests to BigQuery, as described in https://cloud.google.com/bigquery/docs/reference/rest/v2/tabledata/insertAll. Must have at least one of these | | scoopes: `https://www.googleapis.com/auth/bigquery`, `https://www.googleapis.com/auth/cloud-platform`,  or `https://www.googleapis.com/auth/bigquery.insertdata`. For simplicity, you can just use `https://www.googleapis.com |/| auth/bigquery.insertdata`. |
 | BIG_QUERY_PROJECT_ID | Required | The name of the Google Cloud project that contains your BigQuery dataset. This is typically a string of the form `my-project-19902`. |
 | BIG_QUERY_DATASET_ID | Required | The name of dataset that you gave at creation time. This is an arbitrary string, typically a simple descriptive name like `weblog`. |
 | BIG_QUERY_TABLE_ID | Required | The name of the table within the dataset that you'd like to insert into. This is an arbitrary string, it could be something like `all` if you have a single table for all logs, or perhaps a | | date if you partition logs in some qay. |
 | BIG_QUERY_SKIP_INVALID_ROWS | Optional | Defaults to false. If true, BigQuery will simply skip any invalid rows on insert, otherwise it returns an error and all rows in that request will fail to insert. |
 | BIG_QUERY_IGNORE_UNKNOWN_VALUES | Optional | Default to false. If true, BigQuery will ignore any unknown values it encounters within a record, otherwise it returns an error and all rows in that request will fail to insert. |
+| GOOGLE_SERVICE_ACCOUNT_CREDENTIALS_JSON | Required | A long ugly string containing the JSON of your Google Service account credentials key file. See details above in [Create a Service Account](#create-a-service-account) |
 | DEBUG | Optional | Defaults to false. When running locally, sets the Flask/Werkzeug app server into debug mode, which enables automatic module reloading and debug logging. |
 
 ## Reliability

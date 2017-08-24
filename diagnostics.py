@@ -26,7 +26,7 @@ BigQuery Insert Response Codes: {% for code, count in d.big_query_response_codes
 BigQuery Rows Inserted: {{d.big_query_rows_inserted}}
 BigQuery Rows Failed: {{d.big_query_rows_failed}}
 {% if d.sample_big_query_insert_errors %}
-Sampling of BigQuery insert responses:
+Sampling of BigQuery insert error responses:
 {% for error in d.sample_big_query_insert_errors %}
 {{error}}
 {% endfor %}
