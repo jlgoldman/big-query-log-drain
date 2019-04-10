@@ -2,13 +2,13 @@ cachetools==2.0.1
 certifi==2017.7.27.1
 chardet==3.0.4
 click==6.7
-Flask==0.12.2
+Flask>=0.12.3
 Flask-Testing==0.6.2
 funcsigs==1.0.2
 google-auth==1.0.2
 idna==2.6
 itsdangerous==0.24
-Jinja2==2.9.6
+Jinja2>=2.10.1
 MarkupSafe==1.0
 mock==2.0.0
 pbr==3.1.1
@@ -17,6 +17,6 @@ pyasn1-modules==0.0.11
 python-dotenv==0.6.5
 rsa==3.4.2
 six==1.10.0
-urllib3==1.22
+urllib3>=1.23
 waitress==1.0.2
 Werkzeug==0.12.2
